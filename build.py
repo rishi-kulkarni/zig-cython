@@ -109,6 +109,7 @@ def compile_target(target: dict) -> Path:
         "zig", "cc",
         "-target", target["zig_target"],
         *target["flags"],
+        "-DNDEBUG",
         f"-I{include_dir}",
         "-o", str(out_path),
         str(C_SOURCE),
@@ -208,13 +209,9 @@ def main():
     # Step 2: Compile and package for each target
     wheels = []
     for target in TARGETS:
-        try:
-            ext_path = compile_target(target)
-            wheel_path = build_wheel(target, ext_path)
-            wheels.append(wheel_path)
-        except (subprocess.CalledProcessError, FileNotFoundError) as e:
-            print(f"[ERROR] {target['name']}: compilation failed ({e})")
-            continue
+        ext_path = compile_target(target)
+        wheel_path = build_wheel(target, ext_path)
+        wheels.append(wheel_path)
 
     print(f"\nBuilt {len(wheels)} wheel(s):")
     for w in wheels:
