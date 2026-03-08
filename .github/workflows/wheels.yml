@@ -34,7 +34,7 @@ jobs:
           done
 
       - name: Test Linux wheel
-        run: uv run --no-project --with dist/*linux*.whl python -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"
+        run: uv run --no-project --python 3.13 --with dist/*linux*.whl python -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -63,4 +63,4 @@ jobs:
 
       - name: Test wheel
         shell: bash
-        run: uv run --no-project --with dist/${{ matrix.pattern }}.whl python -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"
+        run: uv run --no-project --python 3.13 --with dist/${{ matrix.pattern }}.whl python -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"

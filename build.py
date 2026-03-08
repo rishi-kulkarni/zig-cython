@@ -8,6 +8,7 @@ import os
 import shutil
 import subprocess
 import sysconfig
+import tarfile
 import urllib.request
 import zipfile
 from pathlib import Path
@@ -18,7 +19,20 @@ PYX_SOURCE = Path("src/zigcython/_fast.pyx")
 C_SOURCE = Path("src/zigcython/_fast.c")
 DIST_DIR = Path("dist")
 PY_VERSION = "cp313"
+PY_VERSION_DOTTED = "3.13.1"
 PY_INCLUDE = sysconfig.get_path("include")
+
+CPYTHON_SOURCE_URL = (
+    f"https://www.python.org/ftp/python/{PY_VERSION_DOTTED}/"
+    f"Python-{PY_VERSION_DOTTED}.tgz"
+)
+CPYTHON_SOURCE_DIR = Path("build/cpython-source")
+
+WINDOWS_PYTHON_URL = (
+    f"https://www.python.org/ftp/python/{PY_VERSION_DOTTED}/"
+    f"python-{PY_VERSION_DOTTED}-embed-amd64.zip"
+)
+WINDOWS_PYTHON_DIR = Path("build/windows-python")
 
 TARGETS = [
     {
@@ -27,6 +41,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-x86_64-linux-gnu.so",
         "flags": ["-shared", "-fPIC"],
         "wheel_tag": "cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64",
+        "pyconfig": "unix",
     },
     {
         "name": "macos-x86_64",
@@ -34,6 +49,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-darwin.so",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_tag": "cp313-cp313-macosx_10_13_x86_64",
+        "pyconfig": "unix",
     },
     {
         "name": "macos-arm64",
@@ -41,21 +57,67 @@ TARGETS = [
         "ext_suffix": ".cpython-313-darwin.so",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_tag": "cp313-cp313-macosx_11_0_arm64",
+        "pyconfig": "unix",
     },
     {
         "name": "windows-x86_64",
         "zig_target": "x86_64-windows-gnu",
         "ext_suffix": ".pyd",
-        "flags": ["-shared", "-DMS_WIN64"],
+        "flags": ["-shared"],
         "wheel_tag": "cp313-cp313-win_amd64",
+        "pyconfig": "windows",
     },
 ]
 
 
-WINDOWS_PYTHON_URL = (
-    "https://www.python.org/ftp/python/3.13.1/python-3.13.1-embed-amd64.zip"
-)
-WINDOWS_PYTHON_DIR = Path("build/windows-python")
+def fetch_cpython_source() -> Path:
+    """Download CPython source to get platform-independent headers and PC/pyconfig.h."""
+    source_root = CPYTHON_SOURCE_DIR / f"Python-{PY_VERSION_DOTTED}"
+    if source_root.exists():
+        print("[headers] Using cached CPython source")
+        return source_root
+
+    CPYTHON_SOURCE_DIR.mkdir(parents=True, exist_ok=True)
+    tgz_path = CPYTHON_SOURCE_DIR / "cpython.tgz"
+
+    if not tgz_path.exists():
+        print(f"[headers] Downloading CPython source from {CPYTHON_SOURCE_URL}")
+        urllib.request.urlretrieve(CPYTHON_SOURCE_URL, tgz_path)
+
+    print("[headers] Extracting CPython source (Include/ and PC/ only)")
+    with tarfile.open(tgz_path) as tf:
+        prefix = f"Python-{PY_VERSION_DOTTED}/"
+        for member in tf.getmembers():
+            if member.name.startswith(f"{prefix}Include/") or \
+               member.name.startswith(f"{prefix}PC/"):
+                tf.extract(member, CPYTHON_SOURCE_DIR)
+
+    return source_root
+
+
+def prepare_include_dir(target: dict, cpython_root: Path) -> Path:
+    """Create a per-target include directory with the correct pyconfig.h."""
+    include_dir = Path("build") / "include" / target["name"]
+    if include_dir.exists():
+        return include_dir
+
+    # Copy the cross-platform headers from CPython source
+    src_include = cpython_root / "Include"
+    shutil.copytree(src_include, include_dir)
+
+    # Overlay the correct pyconfig.h
+    if target["pyconfig"] == "windows":
+        # Windows: use PC/pyconfig.h.in from CPython source (manually maintained, not generated)
+        win_pyconfig = cpython_root / "PC" / "pyconfig.h.in"
+        shutil.copy2(win_pyconfig, include_dir / "pyconfig.h")
+        print(f"[headers] {target['name']}: using PC/pyconfig.h")
+    else:
+        # Unix (Linux/macOS): use host pyconfig.h (LP64 data model is shared)
+        host_pyconfig = Path(PY_INCLUDE) / "pyconfig.h"
+        shutil.copy2(host_pyconfig, include_dir / "pyconfig.h")
+        print(f"[headers] {target['name']}: using host pyconfig.h")
+
+    return include_dir
 
 
 def fetch_windows_python_libs() -> Path:
@@ -89,7 +151,7 @@ def cythonize():
     )
 
 
-def compile_target(target: dict) -> Path:
+def compile_target(target: dict, include_dir: Path) -> Path:
     """Compile C source for a given target using zig cc."""
     name = target["name"]
     out_name = f"_fast{target['ext_suffix']}"
@@ -106,7 +168,7 @@ def compile_target(target: dict) -> Path:
         "zig", "cc",
         "-target", target["zig_target"],
         *target["flags"],
-        f"-I{PY_INCLUDE}",
+        f"-I{include_dir}",
         "-o", str(out_path),
         str(C_SOURCE),
         *extra_args,
@@ -202,11 +264,15 @@ def main():
     # Step 1: Cythonize
     cythonize()
 
-    # Step 2: Compile and package for each target
+    # Step 2: Fetch CPython source for cross-platform headers
+    cpython_root = fetch_cpython_source()
+
+    # Step 3: Compile and package for each target
     wheels = []
     for target in TARGETS:
         try:
-            ext_path = compile_target(target)
+            include_dir = prepare_include_dir(target, cpython_root)
+            ext_path = compile_target(target, include_dir)
             wheel_path = build_wheel(target, ext_path)
             wheels.append(wheel_path)
         except (subprocess.CalledProcessError, FileNotFoundError) as e:
