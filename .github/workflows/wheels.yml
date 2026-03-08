@@ -1,0 +1,67 @@
+name: Build Wheels
+
+on:
+  push:
+    branches: [main]
+    tags: ["v*"]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: mlugg/setup-zig@v2
+        with:
+          version: 0.14.1
+
+      - uses: astral-sh/setup-uv@v5
+
+      - name: Install dependencies
+        run: uv sync
+
+      - name: Build wheels
+        run: uv run python build.py
+
+      - name: Inspect wheels
+        run: |
+          for whl in dist/*.whl; do
+            echo "=== $whl ==="
+            unzip -l "$whl"
+            echo
+          done
+
+      - name: Test Linux wheel
+        run: |
+          uv pip install dist/*linux*.whl
+          uv run python -c "from zigcython._fast import fib; print(f'fib(10) = {fib(10)}')"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: wheels
+          path: dist/*.whl
+
+  test:
+    needs: build
+    strategy:
+      matrix:
+        include:
+          - os: macos-13
+            pattern: "*macosx_10_13_x86_64*"
+          - os: macos-latest
+            pattern: "*macosx_11_0_arm64*"
+          - os: windows-latest
+            pattern: "*win_amd64*"
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: astral-sh/setup-uv@v5
+
+      - uses: actions/download-artifact@v4
+        with:
+          name: wheels
+          path: dist/
+
+      - name: Test wheel
+        run: uv run --with dist/${{ matrix.pattern }}.whl python -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"
