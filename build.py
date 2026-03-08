@@ -30,7 +30,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-x86_64-linux-gnu.so",
         "flags": ["-shared", "-fPIC"],
         "wheel_tag": "cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64",
-        "include": "unix",
+        "include": "linux-x86_64",
     },
     {
         "name": "macos-x86_64",
@@ -38,7 +38,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-darwin.so",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_tag": "cp313-cp313-macosx_10_13_x86_64",
-        "include": "unix",
+        "include": "macos-x86_64",
     },
     {
         "name": "macos-arm64",
@@ -46,7 +46,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-darwin.so",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_tag": "cp313-cp313-macosx_11_0_arm64",
-        "include": "unix",
+        "include": "macos-arm64",
     },
     {
         "name": "windows-x86_64",

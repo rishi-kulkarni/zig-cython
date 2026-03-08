@@ -1,3 +1,3 @@
-from zigcython._fast import fib
+from zigcython._fast import cumsum, fib
 
-__all__ = ["fib"]
+__all__ = ["cumsum", "fib"]
