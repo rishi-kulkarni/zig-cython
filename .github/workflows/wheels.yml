@@ -34,7 +34,7 @@ jobs:
           done
 
       - name: Test Linux wheel
-        run: uv run --no-project --python 3.13 --with dist/*linux*.whl python -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"
+        run: uv run --no-project --python 3.13 --with numpy --with dist/*linux*.whl python -c "from zigcython._fast import fib, cumsum; import numpy as np; assert fib(10) == 55; print('fib(10) =', fib(10)); result = cumsum(np.array([1.0, 2.0, 3.0])); assert list(result) == [1.0, 3.0, 6.0]; print('cumsum =', result)"
 
       - uses: actions/upload-artifact@v4
         with:
@@ -67,9 +67,9 @@ jobs:
         shell: bash
         run: |
           uv venv --python 3.13 testvenv
-          uv pip install --python testvenv dist/${{ matrix.wheel }}
+          uv pip install --python testvenv numpy dist/${{ matrix.wheel }}
           if [ -f testvenv/bin/python ]; then
-            testvenv/bin/python -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"
+            testvenv/bin/python -c "from zigcython._fast import fib, cumsum; import numpy as np; assert fib(10) == 55; print('fib(10) =', fib(10)); result = cumsum(np.array([1.0, 2.0, 3.0])); assert list(result) == [1.0, 3.0, 6.0]; print('cumsum =', result)"
           else
-            testvenv/Scripts/python.exe -c "from zigcython._fast import fib; assert fib(10) == 55; print('fib(10) =', fib(10))"
+            testvenv/Scripts/python.exe -c "from zigcython._fast import fib, cumsum; import numpy as np; assert fib(10) == 55; print('fib(10) =', fib(10)); result = cumsum(np.array([1.0, 2.0, 3.0])); assert list(result) == [1.0, 3.0, 6.0]; print('cumsum =', result)"
           fi
