@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Rishi Kulkarni" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = ["numpy"]
 
 [build-system]

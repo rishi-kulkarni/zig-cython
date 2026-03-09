@@ -1,17 +1,17 @@
 """Cross-compile Cython extension to multiple platforms using Zig CC."""
 
+import argparse
 import hashlib
 import base64
 import csv
 import io
 import shutil
 import subprocess
-import sysconfig
 import urllib.request
 import zipfile
+from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
-import numpy
 import ziglang
 
 PROJECT_NAME = "zigcython"
@@ -20,74 +20,174 @@ PYX_SOURCE = Path("src/zigcython/_fast.pyx")
 C_SOURCE = Path("src/zigcython/_fast.c")
 DIST_DIR = Path("dist")
 BUILD_DIR = Path("build")
-
-ZIG = Path(ziglang.__path__[0]) / "zig"
-PYTHON_INCLUDE = Path(sysconfig.get_path("include"))
-NUMPY_INCLUDE = Path(numpy.get_include())
-
-WINDOWS_PYTHON_URL = (
-    "https://www.python.org/ftp/python/3.13.1/python-3.13.1-embed-amd64.zip"
-)
-WINDOWS_PYTHON_DIR = BUILD_DIR / "windows-python"
-
 INCLUDE_DIR = Path("include")
 
-TARGETS = [
-    {
-        "name": "linux-x86_64",
+ZIG = Path(ziglang.__path__[0]) / "zig"
+
+# ---------------------------------------------------------------------------
+# Matrix
+# ---------------------------------------------------------------------------
+
+PYTHON_VERSIONS = ["3.10", "3.11", "3.12", "3.13", "3.14"]
+
+# Platform configs reference directories under include/ that contain
+# the platform-specific pyconfig.h and _numpyconfig.h.  To add a new
+# platform class, create a new directory with those two files.
+PLATFORMS = {
+    "manylinux-x86_64": {
         "zig_target": "x86_64-linux-gnu.2.17",
-        "ext_suffix": ".cpython-313-x86_64-linux-gnu.so",
+        "ext_suffix_platform": "x86_64-linux-gnu",
         "flags": ["-shared", "-fPIC"],
-        "wheel_tag": "cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64",
-        "pyconfig": "linux-x86_64",
+        "wheel_platform": "manylinux_2_17_x86_64.manylinux2014_x86_64",
+        "include": "linux-64bit",
     },
-    {
-        "name": "macos-x86_64",
+    "manylinux-aarch64": {
+        "zig_target": "aarch64-linux-gnu.2.17",
+        "ext_suffix_platform": "aarch64-linux-gnu",
+        "flags": ["-shared", "-fPIC"],
+        "wheel_platform": "manylinux_2_17_aarch64.manylinux2014_aarch64",
+        "include": "linux-64bit",
+    },
+    "musllinux-x86_64": {
+        "zig_target": "x86_64-linux-musl",
+        "ext_suffix_platform": "x86_64-linux-gnu",
+        "flags": ["-shared", "-fPIC"],
+        "wheel_platform": "musllinux_1_2_x86_64",
+        "include": "linux-64bit",
+    },
+    "musllinux-aarch64": {
+        "zig_target": "aarch64-linux-musl",
+        "ext_suffix_platform": "aarch64-linux-gnu",
+        "flags": ["-shared", "-fPIC"],
+        "wheel_platform": "musllinux_1_2_aarch64",
+        "include": "linux-64bit",
+    },
+    "macos-x86_64": {
         "zig_target": "x86_64-macos",
-        "ext_suffix": ".cpython-313-darwin.so",
+        "ext_suffix_platform": "darwin",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
-        "wheel_tag": "cp313-cp313-macosx_10_13_x86_64",
-        "pyconfig": "macos-x86_64",
+        "wheel_platform": "macosx_10_13_x86_64",
+        "include": "macos-64bit",
     },
-    {
-        "name": "macos-arm64",
+    "macos-arm64": {
         "zig_target": "aarch64-macos",
-        "ext_suffix": ".cpython-313-darwin.so",
+        "ext_suffix_platform": "darwin",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
-        "wheel_tag": "cp313-cp313-macosx_11_0_arm64",
-        "pyconfig": "macos-arm64",
+        "wheel_platform": "macosx_11_0_arm64",
+        "include": "macos-64bit",
     },
-    {
-        "name": "windows-x86_64",
+    "windows-x86_64": {
         "zig_target": "x86_64-windows-gnu",
-        "ext_suffix": ".pyd",
+        "ext_suffix_platform": None,  # Windows uses .pyd
         "flags": ["-shared"],
-        "wheel_tag": "cp313-cp313-win_amd64",
-        "pyconfig": "windows",
+        "wheel_platform": "win_amd64",
+        "include": "windows-64bit",
     },
-]
+}
+
+# Latest patch release per minor version (for Windows DLL downloads).
+CPYTHON_PATCH = {
+    "3.10": "3.10.16",
+    "3.11": "3.11.12",
+    "3.12": "3.12.10",
+    "3.13": "3.13.2",
+    "3.14": "3.14.0a6",
+}
 
 
-def fetch_windows_python_libs() -> Path:
-    """Download embeddable Python for Windows and extract python3.dll."""
-    if (WINDOWS_PYTHON_DIR / "python313.dll").exists():
-        print("[windows] Using cached python313.dll")
-        return WINDOWS_PYTHON_DIR
+# ---------------------------------------------------------------------------
+# Helpers
+# ---------------------------------------------------------------------------
 
-    WINDOWS_PYTHON_DIR.mkdir(parents=True, exist_ok=True)
-    zip_path = WINDOWS_PYTHON_DIR / "python-embed.zip"
 
-    if not zip_path.exists():
-        print(f"[windows] Downloading embeddable Python from {WINDOWS_PYTHON_URL}")
-        urllib.request.urlretrieve(WINDOWS_PYTHON_URL, zip_path)
+def ext_suffix(py_version: str, platform: dict) -> str:
+    minor = py_version.split(".")[1]
+    if platform["ext_suffix_platform"] is None:
+        return ".pyd"
+    return f".cpython-3{minor}-{platform['ext_suffix_platform']}.so"
+
+
+def wheel_tag(py_version: str, platform: dict) -> str:
+    minor = py_version.split(".")[1]
+    return f"cp3{minor}-cp3{minor}-{platform['wheel_platform']}"
+
+
+# ---------------------------------------------------------------------------
+# Windows DLL fetching
+# ---------------------------------------------------------------------------
+
+
+def fetch_windows_dll(py_version: str) -> Path:
+    """Download the embeddable Python zip and extract python3XX.dll."""
+    minor = py_version.split(".")[1]
+    dll_name = f"python3{minor}.dll"
+    cache_dir = BUILD_DIR / "windows-python" / py_version
+    dll_path = cache_dir / dll_name
+
+    if dll_path.exists():
+        return dll_path
+
+    cache_dir.mkdir(parents=True, exist_ok=True)
+    full_ver = CPYTHON_PATCH[py_version]
+    url = f"https://www.python.org/ftp/python/{full_ver}/python-{full_ver}-embed-amd64.zip"
+    zip_path = cache_dir / "python-embed.zip"
+
+    print(f"[windows] Downloading embeddable Python {full_ver} ...")
+    urllib.request.urlretrieve(url, zip_path)
 
     with zipfile.ZipFile(zip_path) as zf:
         for name in zf.namelist():
-            if name.endswith(".dll") and "python" in name.lower():
-                zf.extract(name, WINDOWS_PYTHON_DIR)
+            if name.lower() == dll_name.lower():
+                zf.extract(name, cache_dir)
                 print(f"[windows] Extracted {name}")
+                break
 
-    return WINDOWS_PYTHON_DIR
+    zip_path.unlink()
+    return dll_path
+
+
+# ---------------------------------------------------------------------------
+# Python version include paths
+# ---------------------------------------------------------------------------
+
+# Cache of (python_include, numpy_include) per Python version.
+_include_cache: dict[str, tuple[Path, Path]] = {}
+
+
+def get_includes(py_version: str) -> tuple[Path, Path]:
+    """Install the target Python version via uv and return its include paths."""
+    if py_version in _include_cache:
+        return _include_cache[py_version]
+
+    venv_dir = BUILD_DIR / "venvs" / py_version
+    if not venv_dir.exists():
+        print(f"[setup] Creating venv for Python {py_version} ...")
+        subprocess.run(
+            ["uv", "venv", "--python", py_version, str(venv_dir)],
+            check=True,
+        )
+        subprocess.run(
+            ["uv", "pip", "install", "--python", str(venv_dir), "numpy"],
+            check=True,
+        )
+
+    # Query include paths from the installed Python.
+    python = venv_dir / "bin" / "python"
+    out = subprocess.run(
+        [str(python), "-c",
+         "import sysconfig, numpy; "
+         "print(sysconfig.get_path('include')); "
+         "print(numpy.get_include())"],
+        capture_output=True, text=True, check=True,
+    )
+    py_inc, np_inc = [Path(p) for p in out.stdout.strip().splitlines()]
+    _include_cache[py_version] = (py_inc, np_inc)
+    return py_inc, np_inc
+
+
+# ---------------------------------------------------------------------------
+# Build steps
+# ---------------------------------------------------------------------------
 
 
 def cythonize():
@@ -99,59 +199,59 @@ def cythonize():
     )
 
 
-def compile_target(target: dict) -> Path:
-    """Compile C source for a given target using zig cc."""
-    name = target["name"]
-    out_name = f"_fast{target['ext_suffix']}"
-    build_dir = BUILD_DIR / name
+def compile_target(py_version: str, plat_name: str, plat: dict) -> Path:
+    """Compile C source for one (python_version, platform) combination."""
+    suffix = ext_suffix(py_version, plat)
+    build_dir = BUILD_DIR / py_version / plat_name
     build_dir.mkdir(parents=True, exist_ok=True)
-    out_path = build_dir / out_name
+    out_path = build_dir / f"_fast{suffix}"
 
-    # Prepare merged include dirs with platform-specific config overrides.
-    py_inc = build_dir / "include" / "python"
-    np_inc = build_dir / "include" / "numpy"
-    if (build_dir / "include").exists():
-        shutil.rmtree(build_dir / "include")
-    override_dir = INCLUDE_DIR / target["pyconfig"]
-    shutil.copytree(PYTHON_INCLUDE, py_inc)
+    python_include, numpy_include = get_includes(py_version)
+
+    # Merge version-correct Python/numpy headers with platform-specific overrides.
+    inc_dir = build_dir / "include"
+    py_inc = inc_dir / "python"
+    np_inc = inc_dir / "numpy"
+    if inc_dir.exists():
+        shutil.rmtree(inc_dir)
+
+    override_dir = INCLUDE_DIR / plat["include"]
+    shutil.copytree(python_include, py_inc)
     shutil.copy2(override_dir / "pyconfig.h", py_inc / "pyconfig.h")
-    shutil.copytree(NUMPY_INCLUDE, np_inc)
+    shutil.copytree(numpy_include, np_inc)
     shutil.copy2(override_dir / "_numpyconfig.h", np_inc / "numpy" / "_numpyconfig.h")
-    include_flags = [f"-I{py_inc}", f"-I{np_inc}"]
 
     extra_args = []
-    if name == "windows-x86_64":
-        win_dir = fetch_windows_python_libs()
-        extra_args.append(str(win_dir / "python313.dll"))
+    if plat_name == "windows-x86_64":
+        dll_path = fetch_windows_dll(py_version)
+        extra_args.append(str(dll_path))
 
     cmd = [
         str(ZIG), "cc",
-        "-target", target["zig_target"],
-        *target["flags"],
+        "-target", plat["zig_target"],
+        *plat["flags"],
         "-DNDEBUG",
-        *include_flags,
+        f"-I{py_inc}", f"-I{np_inc}",
         "-o", str(out_path),
         str(C_SOURCE),
         *extra_args,
     ]
 
-    print(f"[compile] {name}: {' '.join(cmd)}")
+    print(f"[compile] {py_version}/{plat_name}: {' '.join(cmd)}")
     subprocess.run(cmd, check=True)
-    print(f"[compile] {name}: -> {out_path}")
     return out_path
 
 
 def record_hash(path: str, data: bytes) -> tuple[str, str, str]:
-    """Compute hash and size for RECORD."""
     digest = hashlib.sha256(data).digest()
     hash_str = "sha256=" + base64.urlsafe_b64encode(digest).decode("ascii").rstrip("=")
     return (path, hash_str, str(len(data)))
 
 
-def build_wheel(target: dict, ext_path: Path):
-    """Package compiled extension into a wheel."""
-    wheel_tag = target["wheel_tag"]
-    wheel_name = f"{PROJECT_NAME}-{VERSION}-{wheel_tag}.whl"
+def build_wheel(py_version: str, plat: dict, ext_path: Path) -> Path:
+    tag = wheel_tag(py_version, plat)
+    suffix = ext_suffix(py_version, plat)
+    wheel_name = f"{PROJECT_NAME}-{VERSION}-{tag}.whl"
     DIST_DIR.mkdir(parents=True, exist_ok=True)
     wheel_path = DIST_DIR / wheel_name
 
@@ -166,14 +266,14 @@ def build_wheel(target: dict, ext_path: Path):
         f"Name: {PROJECT_NAME}\n"
         f"Version: {VERSION}\n"
         f"Summary: Cython extension cross-compiled with Zig\n"
-        f"Requires-Python: >=3.13\n"
+        f"Requires-Python: >=3.10\n"
     ).encode()
 
     wheel_content = (
         f"Wheel-Version: 1.0\n"
         f"Generator: build.py\n"
         f"Root-Is-Purelib: false\n"
-        f"Tag: {wheel_tag}\n"
+        f"Tag: {tag}\n"
     ).encode()
 
     top_level = b"zigcython\n"
@@ -183,7 +283,7 @@ def build_wheel(target: dict, ext_path: Path):
         whl.writestr(pkg_init, init_py)
         records.append(record_hash(pkg_init, init_py))
 
-        ext_name = f"zigcython/_fast{target['ext_suffix']}"
+        ext_name = f"zigcython/_fast{suffix}"
         whl.writestr(ext_name, ext_data)
         records.append(record_hash(ext_name, ext_data))
 
@@ -211,7 +311,20 @@ def build_wheel(target: dict, ext_path: Path):
     return wheel_path
 
 
+# ---------------------------------------------------------------------------
+# Main
+# ---------------------------------------------------------------------------
+
+
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--python", nargs="*", help="Python versions (e.g. 3.13)")
+    parser.add_argument("--platform", nargs="*", help="Platforms (e.g. manylinux-x86_64)")
+    args = parser.parse_args()
+
+    versions = args.python or PYTHON_VERSIONS
+    platforms = {k: PLATFORMS[k] for k in (args.platform or PLATFORMS)}
+
     if DIST_DIR.exists():
         shutil.rmtree(DIST_DIR)
     if BUILD_DIR.exists():
@@ -219,11 +332,18 @@ def main():
 
     cythonize()
 
+    # Pre-fetch Windows DLLs in parallel.
+    if "windows-x86_64" in platforms:
+        with ThreadPoolExecutor(max_workers=len(versions)) as pool:
+            for v in versions:
+                pool.submit(fetch_windows_dll, v)
+
     wheels = []
-    for target in TARGETS:
-        ext_path = compile_target(target)
-        wheel_path = build_wheel(target, ext_path)
-        wheels.append(wheel_path)
+    for py_version in versions:
+        for plat_name, plat in platforms.items():
+            ext_path = compile_target(py_version, plat_name, plat)
+            whl = build_wheel(py_version, plat, ext_path)
+            wheels.append(whl)
 
     print(f"\nBuilt {len(wheels)} wheel(s):")
     for w in wheels:
