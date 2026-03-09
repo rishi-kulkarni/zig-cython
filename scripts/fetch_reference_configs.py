@@ -46,9 +46,17 @@ MATRIX = {
         "pbs_triple": "x86_64-unknown-linux-gnu",
         "numpy_platform": r"manylinux_.*x86_64",
     },
+    "linux-aarch64": {
+        "pbs_triple": "aarch64-unknown-linux-gnu",
+        "numpy_platform": r"manylinux_.*aarch64",
+    },
     "macos-64bit": {
         "pbs_triple": "x86_64-apple-darwin",
         "numpy_platform": r"macosx_10_13_x86_64",
+    },
+    "macos-arm64": {
+        "pbs_triple": "aarch64-apple-darwin",
+        "numpy_platform": r"macosx_11_0_arm64",
     },
     "windows-64bit": {
         "pbs_triple": "x86_64-pc-windows-msvc",
