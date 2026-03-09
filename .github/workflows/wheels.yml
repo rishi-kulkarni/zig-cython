@@ -5,17 +5,12 @@ on:
     branches: [main]
     tags: ["v*"]
   pull_request:
-    branches: [main]
 
 jobs:
   build:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
-      - uses: mlugg/setup-zig@v2
-        with:
-          version: 0.15.2
 
       - uses: astral-sh/setup-uv@v5
 
@@ -27,14 +22,17 @@ jobs:
 
       - name: Inspect wheels
         run: |
-          for whl in dist/*.whl; do
-            echo "=== $whl ==="
-            unzip -l "$whl"
-            echo
-          done
+          echo "Built $(ls dist/*.whl | wc -l) wheels:"
+          ls dist/*.whl
 
-      - name: Test Linux wheel
-        run: uv run --no-project --python 3.13 --with numpy --with dist/*linux*.whl python -c "from zigcython._fast import fib, cumsum; import numpy as np; assert fib(10) == 55; print('fib(10) =', fib(10)); result = cumsum(np.array([1.0, 2.0, 3.0])); assert list(result) == [1.0, 3.0, 6.0]; print('cumsum =', result)"
+      - name: Test all manylinux x86_64 wheels
+        run: |
+          for pyver in 3.10 3.11 3.12 3.13 3.14; do
+            echo "=== Testing Python $pyver manylinux-x86_64 ==="
+            whl=$(ls dist/*cp${pyver/./}*manylinux*x86_64*.whl)
+            uv run --no-project --python "$pyver" --with numpy --with "$whl" \
+              python -c "from zigcython._fast import fib, cumsum; import numpy as np; assert fib(10) == 55; result = cumsum(np.array([1.0, 2.0, 3.0])); assert list(result) == [1.0, 3.0, 6.0]; print(f'Python {\"$pyver\"}: fib(10)={fib(10)}, cumsum={result}')"
+          done
 
       - uses: actions/upload-artifact@v4
         with:
@@ -44,12 +42,41 @@ jobs:
   test:
     needs: build
     strategy:
+      fail-fast: false
       matrix:
         include:
+          # macOS arm64 — test all Python versions
           - os: macos-latest
+            python: "3.10"
+            wheel: zigcython-0.1.0-cp310-cp310-macosx_11_0_arm64.whl
+          - os: macos-latest
+            python: "3.11"
+            wheel: zigcython-0.1.0-cp311-cp311-macosx_11_0_arm64.whl
+          - os: macos-latest
+            python: "3.12"
+            wheel: zigcython-0.1.0-cp312-cp312-macosx_11_0_arm64.whl
+          - os: macos-latest
+            python: "3.13"
             wheel: zigcython-0.1.0-cp313-cp313-macosx_11_0_arm64.whl
+          - os: macos-latest
+            python: "3.14"
+            wheel: zigcython-0.1.0-cp314-cp314-macosx_11_0_arm64.whl
+          # Windows — test all Python versions
           - os: windows-latest
+            python: "3.10"
+            wheel: zigcython-0.1.0-cp310-cp310-win_amd64.whl
+          - os: windows-latest
+            python: "3.11"
+            wheel: zigcython-0.1.0-cp311-cp311-win_amd64.whl
+          - os: windows-latest
+            python: "3.12"
+            wheel: zigcython-0.1.0-cp312-cp312-win_amd64.whl
+          - os: windows-latest
+            python: "3.13"
             wheel: zigcython-0.1.0-cp313-cp313-win_amd64.whl
+          - os: windows-latest
+            python: "3.14"
+            wheel: zigcython-0.1.0-cp314-cp314-win_amd64.whl
     runs-on: ${{ matrix.os }}
     steps:
       - uses: astral-sh/setup-uv@v5
@@ -59,14 +86,10 @@ jobs:
           name: wheels
           path: dist/
 
-      - name: List wheels
-        shell: bash
-        run: ls -la dist/
-
       - name: Test wheel
         shell: bash
         run: |
-          uv venv --python 3.13 testvenv
+          uv venv --python ${{ matrix.python }} testvenv
           uv pip install --python testvenv numpy dist/${{ matrix.wheel }}
           if [ -f testvenv/bin/python ]; then
             testvenv/bin/python -c "from zigcython._fast import fib, cumsum; import numpy as np; assert fib(10) == 55; print('fib(10) =', fib(10)); result = cumsum(np.array([1.0, 2.0, 3.0])); assert list(result) == [1.0, 3.0, 6.0]; print('cumsum =', result)"

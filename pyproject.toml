@@ -6,7 +6,7 @@ readme = "README.md"
 authors = [
     { name = "Rishi Kulkarni" }
 ]
-requires-python = ">=3.13"
+requires-python = ">=3.10"
 dependencies = ["numpy"]
 
 [build-system]
@@ -17,4 +17,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [dependency-groups]
-dev = ["cython>=3.0"]
+dev = ["cython>=3.0", "ziglang>=0.15"]
