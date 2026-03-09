@@ -4,24 +4,33 @@ import hashlib
 import base64
 import csv
 import io
-import os
 import shutil
 import subprocess
+import sysconfig
 import urllib.request
 import zipfile
 from pathlib import Path
+
+import numpy
+import ziglang
 
 PROJECT_NAME = "zigcython"
 VERSION = "0.1.0"
 PYX_SOURCE = Path("src/zigcython/_fast.pyx")
 C_SOURCE = Path("src/zigcython/_fast.c")
 DIST_DIR = Path("dist")
-INCLUDE_DIR = Path("include")
+BUILD_DIR = Path("build")
+
+ZIG = Path(ziglang.__path__[0]) / "zig"
+PYTHON_INCLUDE = Path(sysconfig.get_path("include"))
+NUMPY_INCLUDE = Path(numpy.get_include())
 
 WINDOWS_PYTHON_URL = (
     "https://www.python.org/ftp/python/3.13.1/python-3.13.1-embed-amd64.zip"
 )
-WINDOWS_PYTHON_DIR = Path("build/windows-python")
+WINDOWS_PYTHON_DIR = BUILD_DIR / "windows-python"
+
+INCLUDE_DIR = Path("include")
 
 TARGETS = [
     {
@@ -30,7 +39,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-x86_64-linux-gnu.so",
         "flags": ["-shared", "-fPIC"],
         "wheel_tag": "cp313-cp313-manylinux_2_17_x86_64.manylinux2014_x86_64",
-        "include": "linux-x86_64",
+        "pyconfig": "linux-x86_64",
     },
     {
         "name": "macos-x86_64",
@@ -38,7 +47,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-darwin.so",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_tag": "cp313-cp313-macosx_10_13_x86_64",
-        "include": "macos-x86_64",
+        "pyconfig": "macos-x86_64",
     },
     {
         "name": "macos-arm64",
@@ -46,7 +55,7 @@ TARGETS = [
         "ext_suffix": ".cpython-313-darwin.so",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_tag": "cp313-cp313-macosx_11_0_arm64",
-        "include": "macos-arm64",
+        "pyconfig": "macos-arm64",
     },
     {
         "name": "windows-x86_64",
@@ -54,7 +63,7 @@ TARGETS = [
         "ext_suffix": ".pyd",
         "flags": ["-shared"],
         "wheel_tag": "cp313-cp313-win_amd64",
-        "include": "windows",
+        "pyconfig": "windows",
     },
 ]
 
@@ -94,11 +103,21 @@ def compile_target(target: dict) -> Path:
     """Compile C source for a given target using zig cc."""
     name = target["name"]
     out_name = f"_fast{target['ext_suffix']}"
-    build_dir = Path("build") / name
+    build_dir = BUILD_DIR / name
     build_dir.mkdir(parents=True, exist_ok=True)
     out_path = build_dir / out_name
 
-    include_dir = INCLUDE_DIR / target["include"]
+    # Prepare merged include dirs with platform-specific config overrides.
+    py_inc = build_dir / "include" / "python"
+    np_inc = build_dir / "include" / "numpy"
+    if (build_dir / "include").exists():
+        shutil.rmtree(build_dir / "include")
+    override_dir = INCLUDE_DIR / target["pyconfig"]
+    shutil.copytree(PYTHON_INCLUDE, py_inc)
+    shutil.copy2(override_dir / "pyconfig.h", py_inc / "pyconfig.h")
+    shutil.copytree(NUMPY_INCLUDE, np_inc)
+    shutil.copy2(override_dir / "_numpyconfig.h", np_inc / "numpy" / "_numpyconfig.h")
+    include_flags = [f"-I{py_inc}", f"-I{np_inc}"]
 
     extra_args = []
     if name == "windows-x86_64":
@@ -106,11 +125,11 @@ def compile_target(target: dict) -> Path:
         extra_args.append(str(win_dir / "python313.dll"))
 
     cmd = [
-        "zig", "cc",
+        str(ZIG), "cc",
         "-target", target["zig_target"],
         *target["flags"],
         "-DNDEBUG",
-        f"-I{include_dir}",
+        *include_flags,
         "-o", str(out_path),
         str(C_SOURCE),
         *extra_args,
@@ -160,7 +179,6 @@ def build_wheel(target: dict, ext_path: Path):
     top_level = b"zigcython\n"
 
     with zipfile.ZipFile(wheel_path, "w", zipfile.ZIP_DEFLATED) as whl:
-        # Package files
         pkg_init = "zigcython/__init__.py"
         whl.writestr(pkg_init, init_py)
         records.append(record_hash(pkg_init, init_py))
@@ -169,7 +187,6 @@ def build_wheel(target: dict, ext_path: Path):
         whl.writestr(ext_name, ext_data)
         records.append(record_hash(ext_name, ext_data))
 
-        # dist-info files
         meta_path = f"{dist_info}/METADATA"
         whl.writestr(meta_path, metadata_content)
         records.append(record_hash(meta_path, metadata_content))
@@ -182,7 +199,6 @@ def build_wheel(target: dict, ext_path: Path):
         whl.writestr(top_level_path, top_level)
         records.append(record_hash(top_level_path, top_level))
 
-        # RECORD itself (no hash for itself)
         record_path = f"{dist_info}/RECORD"
         records.append((record_path, "", ""))
         buf = io.StringIO()
@@ -196,17 +212,13 @@ def build_wheel(target: dict, ext_path: Path):
 
 
 def main():
-    # Clean
     if DIST_DIR.exists():
         shutil.rmtree(DIST_DIR)
-    build_dir = Path("build")
-    if build_dir.exists():
-        shutil.rmtree(build_dir)
+    if BUILD_DIR.exists():
+        shutil.rmtree(BUILD_DIR)
 
-    # Step 1: Cythonize
     cythonize()
 
-    # Step 2: Compile and package for each target
     wheels = []
     for target in TARGETS:
         ext_path = compile_target(target)

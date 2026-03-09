@@ -91,7 +91,7 @@
 #define HAVE_BIND_TEXTDOMAIN_CODESET 1
 
 /* Define to 1 if you have the <bluetooth/bluetooth.h> header file. */
-/* #undef HAVE_BLUETOOTH_BLUETOOTH_H */
+#define HAVE_BLUETOOTH_BLUETOOTH_H 1
 
 /* Define to 1 if you have the <bluetooth.h> header file. */
 /* #undef HAVE_BLUETOOTH_H */
@@ -158,10 +158,10 @@
 #define HAVE_CLOCK_T 1
 
 /* Define to 1 if you have the `closefrom' function. */
-/* #undef HAVE_CLOSEFROM */
+#define HAVE_CLOSEFROM 1
 
 /* Define to 1 if you have the `close_range' function. */
-/* #undef HAVE_CLOSE_RANGE */
+#define HAVE_CLOSE_RANGE 1
 
 /* Define if the C compiler supports computed gotos. */
 #define HAVE_COMPUTED_GOTOS 1
@@ -176,7 +176,7 @@
 #define HAVE_CONNECT 1
 
 /* Define to 1 if you have the `copy_file_range' function. */
-/* #undef HAVE_COPY_FILE_RANGE */
+#define HAVE_COPY_FILE_RANGE 1
 
 /* Define to 1 if you have the `ctermid' function. */
 #define HAVE_CTERMID 1
@@ -259,6 +259,10 @@
    */
 /* #undef HAVE_DECL_TZNAME */
 
+/* Define to 1 if you have the declaration of `UT_NAMESIZE', and to 0 if you
+   don't. */
+#define HAVE_DECL_UT_NAMESIZE 1
+
 /* Define to 1 if you have the device macros. */
 #define HAVE_DEVICE_MACROS 1
 
@@ -330,7 +334,7 @@
 #define HAVE_EXECV 1
 
 /* Define to 1 if you have the `explicit_bzero' function. */
-/* #undef HAVE_EXPLICIT_BZERO */
+#define HAVE_EXPLICIT_BZERO 1
 
 /* Define to 1 if you have the `explicit_memset' function. */
 /* #undef HAVE_EXPLICIT_MEMSET */
@@ -451,7 +455,7 @@
 /* #undef HAVE_GDBM_DASH_NDBM_H */
 
 /* Define to 1 if you have the <gdbm.h> header file. */
-/* #undef HAVE_GDBM_H */
+#define HAVE_GDBM_H 1
 
 /* Define to 1 if you have the <gdbm/ndbm.h> header file. */
 /* #undef HAVE_GDBM_NDBM_H */
@@ -466,7 +470,7 @@
 #define HAVE_GETEGID 1
 
 /* Define to 1 if you have the `getentropy' function. */
-/* #undef HAVE_GETENTROPY */
+#define HAVE_GETENTROPY 1
 
 /* Define to 1 if you have the `geteuid' function. */
 #define HAVE_GETEUID 1
@@ -522,6 +526,9 @@
 /* Define to 1 if you have the `getlogin' function. */
 #define HAVE_GETLOGIN 1
 
+/* Define to 1 if you have the `getlogin_r' function. */
+#define HAVE_GETLOGIN_R 1
+
 /* Define to 1 if you have the `getnameinfo' function. */
 #define HAVE_GETNAMEINFO 1
 
@@ -562,10 +569,10 @@
 #define HAVE_GETPWUID_R 1
 
 /* Define to 1 if the getrandom() function is available */
-/* #undef HAVE_GETRANDOM */
+#define HAVE_GETRANDOM 1
 
 /* Define to 1 if the Linux getrandom() syscall is available */
-/* #undef HAVE_GETRANDOM_SYSCALL */
+#define HAVE_GETRANDOM_SYSCALL 1
 
 /* Define to 1 if you have the `getresgid' function. */
 #define HAVE_GETRESGID 1
@@ -713,7 +720,7 @@
 #define HAVE_LINUX_CAN_H 1
 
 /* Define to 1 if you have the <linux/can/j1939.h> header file. */
-/* #undef HAVE_LINUX_CAN_J1939_H */
+#define HAVE_LINUX_CAN_J1939_H 1
 
 /* Define if compiling using Linux 3.6 or later. */
 #define HAVE_LINUX_CAN_RAW_FD_FRAMES 1
@@ -722,7 +729,7 @@
 #define HAVE_LINUX_CAN_RAW_H 1
 
 /* Define if compiling using Linux 4.1 or later. */
-/* #undef HAVE_LINUX_CAN_RAW_JOIN_FILTERS */
+#define HAVE_LINUX_CAN_RAW_JOIN_FILTERS 1
 
 /* Define to 1 if you have the <linux/fs.h> header file. */
 #define HAVE_LINUX_FS_H 1
@@ -737,7 +744,7 @@
 #define HAVE_LINUX_NETLINK_H 1
 
 /* Define to 1 if you have the <linux/qrtr.h> header file. */
-/* #undef HAVE_LINUX_QRTR_H */
+#define HAVE_LINUX_QRTR_H 1
 
 /* Define to 1 if you have the <linux/random.h> header file. */
 #define HAVE_LINUX_RANDOM_H 1
@@ -749,7 +756,7 @@
 #define HAVE_LINUX_TIPC_H 1
 
 /* Define to 1 if you have the <linux/vm_sockets.h> header file. */
-/* #undef HAVE_LINUX_VM_SOCKETS_H */
+#define HAVE_LINUX_VM_SOCKETS_H 1
 
 /* Define to 1 if you have the <linux/wait.h> header file. */
 #define HAVE_LINUX_WAIT_H 1
@@ -787,11 +794,14 @@
 /* Define this if you have the makedev macro. */
 #define HAVE_MAKEDEV 1
 
+/* Define if you have the 'MAXLOGNAME' constant. */
+/* #undef HAVE_MAXLOGNAME */
+
 /* Define to 1 if you have the `mbrtowc' function. */
 #define HAVE_MBRTOWC 1
 
 /* Define if you have the 'memfd_create' function. */
-/* #undef HAVE_MEMFD_CREATE */
+#define HAVE_MEMFD_CREATE 1
 
 /* Define to 1 if you have the `memrchr' function. */
 #define HAVE_MEMRCHR 1
@@ -830,7 +840,7 @@
 /* #undef HAVE_NCURSES */
 
 /* Define if you have the 'ncursesw' library */
-/* #undef HAVE_NCURSESW */
+#define HAVE_NCURSESW 1
 
 /* Define to 1 if you have the <ncursesw/curses.h> header file. */
 #define HAVE_NCURSESW_CURSES_H 1
@@ -900,7 +910,7 @@
 /* #undef HAVE_PANEL */
 
 /* Define if you have the 'panelw' library */
-/* #undef HAVE_PANELW */
+#define HAVE_PANELW 1
 
 /* Define to 1 if you have the <panel.h> header file. */
 #define HAVE_PANEL_H 1
@@ -943,7 +953,7 @@
 
 /* Define to 1 if you have the `posix_spawn_file_actions_addclosefrom_np'
    function. */
-/* #undef HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSEFROM_NP */
+#define HAVE_POSIX_SPAWN_FILE_ACTIONS_ADDCLOSEFROM_NP 1
 
 /* Define to 1 if you have the `pread' function. */
 #define HAVE_PREAD 1
@@ -952,7 +962,7 @@
 #define HAVE_PREADV 1
 
 /* Define to 1 if you have the `preadv2' function. */
-/* #undef HAVE_PREADV2 */
+#define HAVE_PREADV2 1
 
 /* Define if you have the 'prlimit' function. */
 #define HAVE_PRLIMIT 1
@@ -1010,7 +1020,7 @@
 #define HAVE_PWRITEV 1
 
 /* Define to 1 if you have the `pwritev2' function. */
-/* #undef HAVE_PWRITEV2 */
+#define HAVE_PWRITEV2 1
 
 /* Define to 1 if you have the <readline/readline.h> header file. */
 /* #undef HAVE_READLINE_READLINE_H */
@@ -1040,7 +1050,7 @@
 #define HAVE_RL_CATCH_SIGNAL 1
 
 /* Define to 1 if the system has the type `rl_compdisp_func_t'. */
-/* #undef HAVE_RL_COMPDISP_FUNC_T */
+#define HAVE_RL_COMPDISP_FUNC_T 1
 
 /* Define if you have readline 2.2 */
 #define HAVE_RL_COMPLETION_APPEND_CHARACTER 1
@@ -1082,7 +1092,7 @@
 #define HAVE_SCHED_SETSCHEDULER 1
 
 /* Define to 1 if you have the `sem_clockwait' function. */
-/* #undef HAVE_SEM_CLOCKWAIT */
+#define HAVE_SEM_CLOCKWAIT 1
 
 /* Define to 1 if you have the `sem_getvalue' function. */
 #define HAVE_SEM_GETVALUE 1
@@ -1268,10 +1278,10 @@
 #define HAVE_STRING_H 1
 
 /* Define to 1 if you have the `strlcpy' function. */
-/* #undef HAVE_STRLCPY */
+#define HAVE_STRLCPY 1
 
 /* Define to 1 if you have the <stropts.h> header file. */
-#define HAVE_STROPTS_H 1
+/* #undef HAVE_STROPTS_H */
 
 /* Define to 1 if you have the `strsignal' function. */
 #define HAVE_STRSIGNAL 1
@@ -1386,11 +1396,14 @@
 /* Define to 1 if you have the <sys/param.h> header file. */
 #define HAVE_SYS_PARAM_H 1
 
+/* Define to 1 if you have the <sys/pidfd.h> header file. */
+#define HAVE_SYS_PIDFD_H 1
+
 /* Define to 1 if you have the <sys/poll.h> header file. */
 #define HAVE_SYS_POLL_H 1
 
 /* Define to 1 if you have the <sys/random.h> header file. */
-/* #undef HAVE_SYS_RANDOM_H */
+#define HAVE_SYS_RANDOM_H 1
 
 /* Define to 1 if you have the <sys/resource.h> header file. */
 #define HAVE_SYS_RESOURCE_H 1
@@ -1492,8 +1505,8 @@
 /* Define to 1 if you have the `truncate' function. */
 #define HAVE_TRUNCATE 1
 
-/* Define to 1 if you have the `ttyname' function. */
-#define HAVE_TTYNAME 1
+/* Define to 1 if you have the `ttyname_r' function. */
+#define HAVE_TTYNAME_R 1
 
 /* Define to 1 if you don't have `tm_zone' but do have the external array
    `tzname'. */
@@ -1537,6 +1550,9 @@
 /* Define to 1 if you have the <utmp.h> header file. */
 #define HAVE_UTMP_H 1
 
+/* Define if you have the 'HAVE_UT_NAMESIZE' constant. */
+#define HAVE_UT_NAMESIZE 1
+
 /* Define to 1 if you have the `uuid_create' function. */
 /* #undef HAVE_UUID_CREATE */
 
@@ -1546,11 +1562,14 @@
 /* Define if uuid_generate_time_safe() exists. */
 #define HAVE_UUID_GENERATE_TIME_SAFE 1
 
+/* Define if uuid_generate_time_safe() is able to deduce a MAC address. */
+/* #undef HAVE_UUID_GENERATE_TIME_SAFE_STABLE_MAC */
+
 /* Define to 1 if you have the <uuid.h> header file. */
-/* #undef HAVE_UUID_H */
+#define HAVE_UUID_H 1
 
 /* Define to 1 if you have the <uuid/uuid.h> header file. */
-#define HAVE_UUID_UUID_H 1
+/* #undef HAVE_UUID_UUID_H */
 
 /* Define to 1 if you have the `vfork' function. */
 #define HAVE_VFORK 1
@@ -1655,7 +1674,7 @@
 #define PY_HAVE_PERF_TRAMPOLINE 1
 
 /* Define to 1 to build the sqlite module with loadable extensions support. */
-/* #undef PY_SQLITE_ENABLE_LOAD_EXTENSION */
+#define PY_SQLITE_ENABLE_LOAD_EXTENSION 1
 
 /* Define if SQLite was compiled with the serialize API */
 #define PY_SQLITE_HAVE_SERIALIZE 1
@@ -1668,13 +1687,13 @@
 /* #undef PY_SSL_DEFAULT_CIPHER_STRING */
 
 /* PEP 11 Support tier (1, 2, 3 or 0 for unsupported) */
-#define PY_SUPPORT_TIER 2
+#define PY_SUPPORT_TIER 1
 
 /* Define if you want to build an interpreter with many run-time checks. */
 /* #undef Py_DEBUG */
 
 /* Defined if Python is built as a shared library. */
-#define Py_ENABLE_SHARED 1
+/* #undef Py_ENABLE_SHARED */
 
 /* Define if you want to disable the GIL */
 /* #undef Py_GIL_DISABLED */
@@ -1775,7 +1794,7 @@
 /* #undef TM_IN_SYS_TIME */
 
 /* Define if you want to use computed gotos in ceval.c. */
-/* #undef USE_COMPUTED_GOTOS */
+#define USE_COMPUTED_GOTOS 1
 
 /* Enable extensions on AIX 3, Interix.  */
 #ifndef _ALL_SOURCE
@@ -1884,7 +1903,7 @@
 /* #undef WITH_DYLD */
 
 /* Define to build the readline module against libedit. */
-#define WITH_EDITLINE 1
+/* #undef WITH_EDITLINE */
 
 /* Define if you want to compile in object freelists optimization */
 #define WITH_FREELISTS 1
@@ -1951,7 +1970,7 @@
 #define _PYTHONFRAMEWORK ""
 
 /* Define to force use of thread-safe errno, h_errno, and other functions */
-/* #undef _REENTRANT */
+#define _REENTRANT 1
 
 /* Define to 1 if you want to emulate getpid() on WASI */
 /* #undef _WASI_EMULATED_GETPID */
