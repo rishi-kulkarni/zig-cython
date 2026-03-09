@@ -1,0 +1,2 @@
+include src/zigcython/_fast.pyx
+include src/zigcython/_fast.c

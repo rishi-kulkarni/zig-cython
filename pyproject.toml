@@ -10,11 +10,17 @@ requires-python = ">=3.10"
 dependencies = ["numpy"]
 
 [build-system]
-requires = ["setuptools>=75", "cython>=3.0"]
+requires = ["setuptools>=75", "cython>=3.0", "numpy"]
 build-backend = "setuptools.build_meta"
 
 [tool.setuptools.packages.find]
 where = ["src"]
+
+[tool.setuptools.package-data]
+zigcython = ["py.typed"]
+
+[tool.setuptools.exclude-package-data]
+zigcython = ["*.c", "*.pyx"]
 
 [dependency-groups]
 dev = ["cython>=3.0", "ziglang>=0.15"]
