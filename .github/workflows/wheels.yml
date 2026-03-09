@@ -50,6 +50,22 @@ jobs:
       fail-fast: false
       matrix:
         include:
+          # Linux aarch64 — test all Python versions
+          - os: ubuntu-24.04-arm
+            python: "3.10"
+            wheel: zigcython-0.1.0-cp310-cp310-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+          - os: ubuntu-24.04-arm
+            python: "3.11"
+            wheel: zigcython-0.1.0-cp311-cp311-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+          - os: ubuntu-24.04-arm
+            python: "3.12"
+            wheel: zigcython-0.1.0-cp312-cp312-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+          - os: ubuntu-24.04-arm
+            python: "3.13"
+            wheel: zigcython-0.1.0-cp313-cp313-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
+          - os: ubuntu-24.04-arm
+            python: "3.14"
+            wheel: zigcython-0.1.0-cp314-cp314-manylinux_2_17_aarch64.manylinux2014_aarch64.whl
           # macOS arm64 — test all Python versions
           - os: macos-latest
             python: "3.10"

@@ -46,7 +46,7 @@ PLATFORMS = {
         "ext_suffix_platform": "aarch64-linux-gnu",
         "flags": ["-shared", "-fPIC"],
         "wheel_platform": "manylinux_2_17_aarch64.manylinux2014_aarch64",
-        "include": "linux-64bit",
+        "include": "linux-aarch64",
     },
     "musllinux-x86_64": {
         "zig_target": "x86_64-linux-musl",
@@ -60,7 +60,7 @@ PLATFORMS = {
         "ext_suffix_platform": "aarch64-linux-musl",
         "flags": ["-shared", "-fPIC"],
         "wheel_platform": "musllinux_1_2_aarch64",
-        "include": "linux-64bit",
+        "include": "linux-aarch64",
     },
     "macos-x86_64": {
         "zig_target": "x86_64-macos",
@@ -74,7 +74,7 @@ PLATFORMS = {
         "ext_suffix_platform": "darwin",
         "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_platform": "macosx_11_0_arm64",
-        "include": "macos-64bit",
+        "include": "macos-arm64",
     },
     "windows-x86_64": {
         "zig_target": "x86_64-windows-gnu",

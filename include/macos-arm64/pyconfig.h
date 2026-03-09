@@ -21,7 +21,7 @@
 #define ALIGNOF_LONG 8
 
 /* The normal alignment of `max_align_t', in bytes. */
-#define ALIGNOF_MAX_ALIGN_T 16
+#define ALIGNOF_MAX_ALIGN_T 8
 
 /* The normal alignment of `size_t', in bytes. */
 #define ALIGNOF_SIZE_T 8
@@ -164,7 +164,7 @@
 /* #undef HAVE_CLOSE_RANGE */
 
 /* Define if the C compiler supports computed gotos. */
-/* #undef HAVE_COMPUTED_GOTOS */
+#define HAVE_COMPUTED_GOTOS 1
 
 /* Define to 1 if you have the `confstr' function. */
 #define HAVE_CONFSTR 1
@@ -270,7 +270,7 @@
 /* #undef HAVE_DEV_PTC */
 
 /* Define to 1 if you have the /dev/ptmx device file. */
-/* #undef HAVE_DEV_PTMX */
+#define HAVE_DEV_PTMX 1
 
 /* Define to 1 if you have the <direct.h> header file. */
 /* #undef HAVE_DIRECT_H */
@@ -304,7 +304,7 @@
 /* #undef HAVE_DUP3 */
 
 /* Define if you have the '_dyld_shared_cache_contains_path' function. */
-/* #undef HAVE_DYLD_SHARED_CACHE_CONTAINS_PATH */
+#define HAVE_DYLD_SHARED_CACHE_CONTAINS_PATH 1
 
 /* Defined when any dynamic module loading is enabled. */
 #define HAVE_DYNAMIC_LOADING 1
@@ -445,11 +445,11 @@
 /* #undef HAVE_GCC_ASM_FOR_MC68881 */
 
 /* Define if we can use x64 gcc inline assembler */
-#define HAVE_GCC_ASM_FOR_X64 1
+/* #undef HAVE_GCC_ASM_FOR_X64 */
 
 /* Define if we can use gcc inline assembler to get and set x87 control word
    */
-#define HAVE_GCC_ASM_FOR_X87 1
+/* #undef HAVE_GCC_ASM_FOR_X87 */
 
 /* Define if your compiler provides __uint128_t */
 #define HAVE_GCC_UINT128_T 1
@@ -1609,7 +1609,7 @@
 
 /* Define if tzset() actually switches the local timezone in a meaningful way.
    */
-/* #undef HAVE_WORKING_TZSET */
+#define HAVE_WORKING_TZSET 1
 
 /* Define to 1 if you have the `writev' function. */
 #define HAVE_WRITEV 1
@@ -1662,7 +1662,7 @@
 /* #undef PTHREAD_KEY_T_IS_COMPATIBLE_WITH_INT */
 
 /* Defined if PTHREAD_SCOPE_SYSTEM supported. */
-/* #undef PTHREAD_SYSTEM_SCHED_SUPPORTED */
+#define PTHREAD_SYSTEM_SCHED_SUPPORTED 1
 
 /* Define as the preferred size in bits of long digits */
 /* #undef PYLONG_BITS_IN_DIGIT */
@@ -1742,7 +1742,7 @@
 #define SIZEOF_LONG 8
 
 /* The size of `long double', as computed by sizeof. */
-#define SIZEOF_LONG_DOUBLE 16
+#define SIZEOF_LONG_DOUBLE 8
 
 /* The size of `long long', as computed by sizeof. */
 #define SIZEOF_LONG_LONG 8
@@ -1973,7 +1973,7 @@
 #define _PYTHONFRAMEWORK ""
 
 /* Define to force use of thread-safe errno, h_errno, and other functions */
-/* #undef _REENTRANT */
+#define _REENTRANT 1
 
 /* Define to 1 if you want to emulate getpid() on WASI */
 /* #undef _WASI_EMULATED_GETPID */
