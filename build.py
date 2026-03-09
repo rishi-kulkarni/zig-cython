@@ -85,13 +85,15 @@ PLATFORMS = {
     },
 }
 
-# Latest patch release per minor version (for Windows DLL downloads).
-CPYTHON_PATCH = {
-    "3.10": "3.10.16",
-    "3.11": "3.11.12",
+# Patch versions with Windows embeddable zips on python.org.
+# Older series (3.10, 3.11) stopped getting Windows binaries after their
+# last bugfix release, so we pin to the last version that shipped them.
+WINDOWS_EMBED_VERSIONS = {
+    "3.10": "3.10.11",
+    "3.11": "3.11.9",
     "3.12": "3.12.10",
-    "3.13": "3.13.2",
-    "3.14": "3.14.0a6",
+    "3.13": "3.13.12",
+    "3.14": "3.14.3",
 }
 
 
@@ -128,7 +130,7 @@ def fetch_windows_dll(py_version: str) -> Path:
         return dll_path
 
     cache_dir.mkdir(parents=True, exist_ok=True)
-    full_ver = CPYTHON_PATCH[py_version]
+    full_ver = WINDOWS_EMBED_VERSIONS[py_version]
     url = f"https://www.python.org/ftp/python/{full_ver}/python-{full_ver}-embed-amd64.zip"
     zip_path = cache_dir / "python-embed.zip"
 
@@ -335,8 +337,9 @@ def main():
     # Pre-fetch Windows DLLs in parallel.
     if "windows-x86_64" in platforms:
         with ThreadPoolExecutor(max_workers=len(versions)) as pool:
-            for v in versions:
-                pool.submit(fetch_windows_dll, v)
+            futures = [pool.submit(fetch_windows_dll, v) for v in versions]
+            for f in futures:
+                f.result()  # raise on failure
 
     wheels = []
     for py_version in versions:
