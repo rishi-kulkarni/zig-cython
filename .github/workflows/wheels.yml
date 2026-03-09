@@ -17,13 +17,16 @@ jobs:
       - name: Install dependencies
         run: uv sync
 
-      - name: Build wheels
+      - name: Build cross-compiled wheels
         run: uv run python build.py
 
-      - name: Inspect wheels
+      - name: Build sdist
+        run: uv build --sdist --out-dir dist/
+
+      - name: Inspect artifacts
         run: |
-          echo "Built $(ls dist/*.whl | wc -l) wheels:"
-          ls dist/*.whl
+          echo "Built $(ls dist/*.whl | wc -l) wheels + $(ls dist/*.tar.gz 2>/dev/null | wc -l) sdist:"
+          ls dist/
 
       - name: Test all manylinux x86_64 wheels
         run: |
@@ -37,7 +40,9 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: wheels
-          path: dist/*.whl
+          path: |
+            dist/*.whl
+            dist/*.tar.gz
 
   test:
     needs: build

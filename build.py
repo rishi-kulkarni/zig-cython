@@ -50,14 +50,14 @@ PLATFORMS = {
     },
     "musllinux-x86_64": {
         "zig_target": "x86_64-linux-musl",
-        "ext_suffix_platform": "x86_64-linux-gnu",
+        "ext_suffix_platform": "x86_64-linux-musl",
         "flags": ["-shared", "-fPIC"],
         "wheel_platform": "musllinux_1_2_x86_64",
         "include": "linux-64bit",
     },
     "musllinux-aarch64": {
         "zig_target": "aarch64-linux-musl",
-        "ext_suffix_platform": "aarch64-linux-gnu",
+        "ext_suffix_platform": "aarch64-linux-musl",
         "flags": ["-shared", "-fPIC"],
         "wheel_platform": "musllinux_1_2_aarch64",
         "include": "linux-64bit",
