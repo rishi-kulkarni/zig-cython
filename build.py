@@ -10,7 +10,6 @@ from concurrent.futures import ThreadPoolExecutor
 from pathlib import Path
 
 import ziglang
-from wheel.cli.pack import pack as wheel_pack
 
 # ---------------------------------------------------------------------------
 # Read project metadata from pyproject.toml (single source of truth)
@@ -296,7 +295,10 @@ def build_wheel(py_version: str, plat: dict, ext_path: Path) -> Path:
     (dist_info / "top_level.txt").write_text(f"{PROJECT_NAME}\n")
 
     # Let the wheel package handle RECORD and zip creation
-    wheel_pack(str(stage), str(DIST_DIR), build_number=None)
+    subprocess.run(
+        ["python", "-m", "wheel", "pack", str(stage), "--dest-dir", str(DIST_DIR)],
+        check=True,
+    )
     wheel_path = DIST_DIR / f"{PROJECT_NAME}-{VERSION}-{tag}.whl"
     return wheel_path
 
