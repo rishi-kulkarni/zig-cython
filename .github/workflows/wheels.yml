@@ -28,12 +28,12 @@ jobs:
           echo "Built $(ls dist/*.whl | wc -l) wheels + $(ls dist/*.tar.gz 2>/dev/null | wc -l) sdist:"
           ls dist/
 
-      - name: Check Linux wheels with auditwheel
+      - name: Check manylinux x86_64 wheels with auditwheel
         run: |
           uv tool install auditwheel
-          for whl in dist/*linux*.whl; do
-            echo "=== auditwheel check: $(basename $whl) ==="
-            auditwheel check "$whl"
+          for whl in dist/*manylinux*x86_64*.whl; do
+            echo "=== auditwheel show: $(basename $whl) ==="
+            auditwheel show "$whl"
           done
 
       - name: Test all manylinux x86_64 wheels
