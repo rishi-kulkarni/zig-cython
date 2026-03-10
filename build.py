@@ -1,4 +1,4 @@
-"""Cross-compile Cython extension to multiple platforms using Zig CC."""
+"""Cross-compile Cython extension to multiple platforms using Meson + Zig CC."""
 
 import argparse
 import shutil
@@ -41,51 +41,58 @@ PLATFORMS = {
     "manylinux-x86_64": {
         "zig_target": "x86_64-linux-gnu.2.17",
         "ext_suffix_platform": "x86_64-linux-gnu",
-        "flags": ["-shared", "-fPIC"],
         "wheel_platform": "manylinux_2_17_x86_64.manylinux2014_x86_64",
         "include": "linux-64bit",
+        "meson_system": "linux",
+        "meson_cpu_family": "x86_64",
     },
     "manylinux-aarch64": {
         "zig_target": "aarch64-linux-gnu.2.17",
         "ext_suffix_platform": "aarch64-linux-gnu",
-        "flags": ["-shared", "-fPIC"],
         "wheel_platform": "manylinux_2_17_aarch64.manylinux2014_aarch64",
         "include": "linux-aarch64",
+        "meson_system": "linux",
+        "meson_cpu_family": "aarch64",
     },
     "musllinux-x86_64": {
         "zig_target": "x86_64-linux-musl",
         "ext_suffix_platform": "x86_64-linux-musl",
-        "flags": ["-shared", "-fPIC"],
         "wheel_platform": "musllinux_1_2_x86_64",
         "include": "linux-64bit",
+        "meson_system": "linux",
+        "meson_cpu_family": "x86_64",
     },
     "musllinux-aarch64": {
         "zig_target": "aarch64-linux-musl",
         "ext_suffix_platform": "aarch64-linux-musl",
-        "flags": ["-shared", "-fPIC"],
         "wheel_platform": "musllinux_1_2_aarch64",
         "include": "linux-aarch64",
+        "meson_system": "linux",
+        "meson_cpu_family": "aarch64",
     },
     "macos-x86_64": {
         "zig_target": "x86_64-macos",
         "ext_suffix_platform": "darwin",
-        "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_platform": "macosx_10_13_x86_64",
         "include": "macos-64bit",
+        "meson_system": "darwin",
+        "meson_cpu_family": "x86_64",
     },
     "macos-arm64": {
         "zig_target": "aarch64-macos",
         "ext_suffix_platform": "darwin",
-        "flags": ["-shared", "-fPIC", "-undefined", "dynamic_lookup"],
         "wheel_platform": "macosx_11_0_arm64",
         "include": "macos-arm64",
+        "meson_system": "darwin",
+        "meson_cpu_family": "aarch64",
     },
     "windows-x86_64": {
         "zig_target": "x86_64-windows-gnu",
         "ext_suffix_platform": None,  # Windows uses .pyd
-        "flags": ["-shared"],
         "wheel_platform": "win_amd64",
         "include": "windows-64bit",
+        "meson_system": "windows",
+        "meson_cpu_family": "x86_64",
     },
 }
 
@@ -116,6 +123,12 @@ def ext_suffix(py_version: str, platform: dict) -> str:
 def wheel_tag(py_version: str, platform: dict) -> str:
     minor = py_version.split(".")[1]
     return f"cp3{minor}-cp3{minor}-{platform['wheel_platform']}"
+
+
+def _format_meson_array(items: list[str]) -> str:
+    """Format a Python list as a Meson array literal."""
+    inner = ", ".join(f"'{item}'" for item in items)
+    return f"[{inner}]"
 
 
 # ---------------------------------------------------------------------------
@@ -192,12 +205,54 @@ def get_includes(py_version: str) -> tuple[Path, Path]:
 
 
 # ---------------------------------------------------------------------------
+# Meson cross-file generation
+# ---------------------------------------------------------------------------
+
+
+def generate_cross_file(
+    py_version: str, plat_name: str, plat: dict,
+    python_inc: Path, numpy_inc: Path,
+) -> Path:
+    """Generate a Meson cross-file for one (Python version, platform) target."""
+    c_args = [f"-I{python_inc.resolve()}", f"-I{numpy_inc.resolve()}"]
+
+    link_args: list[str] = []
+    if plat["meson_system"] == "darwin":
+        link_args.extend(["-undefined", "dynamic_lookup"])
+    if plat_name == "windows-x86_64":
+        dll_path = fetch_windows_dll(py_version)
+        link_args.append(str(dll_path))
+
+    cross_file = BUILD_DIR / py_version / plat_name / "cross.ini"
+    cross_file.parent.mkdir(parents=True, exist_ok=True)
+
+    cpu = plat["meson_cpu_family"]
+    cross_file.write_text(
+        f"[binaries]\n"
+        f"c = ['{ZIG}', 'cc', '-target', '{plat['zig_target']}']\n"
+        f"ar = ['{ZIG}', 'ar']\n"
+        f"ranlib = ['{ZIG}', 'ranlib']\n"
+        f"\n"
+        f"[built-in options]\n"
+        f"c_args = {_format_meson_array(c_args)}\n"
+        f"c_link_args = {_format_meson_array(link_args)}\n"
+        f"\n"
+        f"[host_machine]\n"
+        f"system = '{plat['meson_system']}'\n"
+        f"cpu_family = '{cpu}'\n"
+        f"cpu = '{cpu}'\n"
+        f"endian = 'little'\n"
+    )
+    return cross_file
+
+
+# ---------------------------------------------------------------------------
 # Build steps
 # ---------------------------------------------------------------------------
 
 
 def cythonize():
-    """Run Cython to produce C source."""
+    """Run Cython to produce C source (consumed by meson.build cross path)."""
     print(f"[cythonize] {PYX_SOURCE} -> {C_SOURCE}")
     subprocess.run(
         ["cython", str(PYX_SOURCE), "-o", str(C_SOURCE)],
@@ -206,7 +261,7 @@ def cythonize():
 
 
 def compile_target(py_version: str, plat_name: str, plat: dict) -> Path:
-    """Compile C source for one (python_version, platform) combination."""
+    """Compile C source for one (python_version, platform) via Meson."""
     suffix = ext_suffix(py_version, plat)
     build_dir = BUILD_DIR / py_version / plat_name
     build_dir.mkdir(parents=True, exist_ok=True)
@@ -227,24 +282,34 @@ def compile_target(py_version: str, plat_name: str, plat: dict) -> Path:
     shutil.copytree(numpy_include, np_inc)
     shutil.copy2(override_dir / "_numpyconfig.h", np_inc / "numpy" / "_numpyconfig.h")
 
-    extra_args = []
-    if plat_name == "windows-x86_64":
-        dll_path = fetch_windows_dll(py_version)
-        extra_args.append(str(dll_path))
+    # Generate Meson cross-file and run the build.
+    cross_file = generate_cross_file(py_version, plat_name, plat, py_inc, np_inc)
+    meson_dir = build_dir / "meson"
 
-    cmd = [
-        str(ZIG), "cc",
-        "-target", plat["zig_target"],
-        *plat["flags"],
-        "-DNDEBUG",
-        f"-I{py_inc}", f"-I{np_inc}",
-        "-o", str(out_path),
-        str(C_SOURCE),
-        *extra_args,
+    setup_cmd = [
+        "meson", "setup", str(meson_dir),
+        "--cross-file", str(cross_file),
     ]
+    if meson_dir.exists():
+        setup_cmd.append("--wipe")
 
-    print(f"[compile] {py_version}/{plat_name}: {' '.join(cmd)}")
-    subprocess.run(cmd, check=True)
+    print(f"[meson setup] {py_version}/{plat_name}")
+    subprocess.run(setup_cmd, check=True)
+
+    print(f"[meson compile] {py_version}/{plat_name}")
+    subprocess.run(["meson", "compile", "-C", str(meson_dir)], check=True)
+
+    # shared_module produces _fast.so (Linux/macOS) or _fast.dll (Windows).
+    for candidate_ext in (".so", ".dll", ".dylib"):
+        candidate = meson_dir / f"_fast{candidate_ext}"
+        if candidate.exists():
+            shutil.copy2(candidate, out_path)
+            break
+    else:
+        raise FileNotFoundError(
+            f"Could not find built module in {meson_dir}"
+        )
+
     return out_path
 
 

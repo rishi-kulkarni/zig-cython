@@ -45,6 +45,15 @@ wheels = [
 ]
 
 [[package]]
+name = "meson"
+version = "1.10.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/1b/d3/8c43e758cf456273c32652bb8b7a4ec2d74327d8849856b0b714ad671da7/meson-1.10.1.tar.gz", hash = "sha256:c42296f12db316a4515b9375a5df330f2e751ccdd4f608430d41d7d6210e4317", size = 2413969, upload-time = "2026-01-18T14:45:08.687Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/9c/d5/582789135863eec7c8c1fa31fbde401b3d5d82dbbb4a0973351a1698f738/meson-1.10.1-py3-none-any.whl", hash = "sha256:fe43d1cc2e6de146fbea78f3a062194bcc0e779efc8a0f0d7c35544dfb86731f", size = 1057724, upload-time = "2026-01-18T14:45:02.584Z" },
+]
+
+[[package]]
 name = "numpy"
 version = "2.2.6"
 source = { registry = "https://pypi.org/simple" }
@@ -192,6 +201,27 @@ wheels = [
 ]
 
 [[package]]
+name = "packaging"
+version = "26.0"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/65/ee/299d360cdc32edc7d2cf530f3accf79c4fca01e96ffc950d8a52213bd8e4/packaging-26.0.tar.gz", hash = "sha256:00243ae351a257117b6a241061796684b084ed1c516a08c48a3f7e147a9d80b4", size = 143416, upload-time = "2026-01-21T20:50:39.064Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/b7/b9/c538f279a4e237a006a2c98387d081e9eb060d203d8ed34467cc0f0b9b53/packaging-26.0-py3-none-any.whl", hash = "sha256:b36f1fef9334a5588b4166f8bcd26a14e521f2b55e6b9de3aaa80d3ff7a37529", size = 74366, upload-time = "2026-01-21T20:50:37.788Z" },
+]
+
+[[package]]
+name = "wheel"
+version = "0.46.3"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "packaging" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/89/24/a2eb353a6edac9a0303977c4cb048134959dd2a51b48a269dfc9dde00c8a/wheel-0.46.3.tar.gz", hash = "sha256:e3e79874b07d776c40bd6033f8ddf76a7dad46a7b8aa1b2787a83083519a1803", size = 60605, upload-time = "2026-01-22T12:39:49.136Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/87/22/b76d483683216dde3d67cba61fb2444be8d5be289bf628c13fc0fd90e5f9/wheel-0.46.3-py3-none-any.whl", hash = "sha256:4b399d56c9d9338230118d705d9737a2a468ccca63d5e813e2a4fc7815d8bc4d", size = 30557, upload-time = "2026-01-22T12:39:48.099Z" },
+]
+
+[[package]]
 name = "zigcython"
 version = "0.1.0"
 source = { editable = "." }
@@ -203,15 +233,19 @@ dependencies = [
 [package.dev-dependencies]
 dev = [
     { name = "cython" },
+    { name = "meson" },
+    { name = "wheel" },
     { name = "ziglang" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "numpy" }]
+requires-dist = [{ name = "numpy", specifier = ">=2.0" }]
 
 [package.metadata.requires-dev]
 dev = [
     { name = "cython", specifier = ">=3.0" },
+    { name = "meson", specifier = ">=1.5" },
+    { name = "wheel", specifier = ">=0.42" },
     { name = "ziglang", specifier = ">=0.15" },
 ]
 
