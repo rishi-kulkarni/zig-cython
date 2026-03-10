@@ -17,4 +17,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [dependency-groups]
-dev = ["cython>=3.0", "wheel>=0.42", "ziglang>=0.15"]
+dev = ["cython>=3.0", "ziglang>=0.15"]
