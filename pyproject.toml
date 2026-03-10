@@ -7,7 +7,7 @@ authors = [
     { name = "Rishi Kulkarni" }
 ]
 requires-python = ">=3.10"
-dependencies = ["numpy"]
+dependencies = ["numpy>=2.0"]
 
 [build-system]
 requires = ["setuptools>=75", "cython>=3.0", "numpy>=2.0", "ziglang>=0.15"]
@@ -17,4 +17,4 @@ build-backend = "setuptools.build_meta"
 where = ["src"]
 
 [dependency-groups]
-dev = ["cython>=3.0", "ziglang>=0.15"]
+dev = ["cython>=3.0", "wheel>=0.42", "ziglang>=0.15"]
