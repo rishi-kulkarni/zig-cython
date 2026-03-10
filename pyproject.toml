@@ -7,7 +7,7 @@ authors = [
     { name = "Rishi Kulkarni" }
 ]
 requires-python = ">=3.10"
-dependencies = ["numpy"]
+dependencies = ["numpy>=2.0"]
 
 [build-system]
 requires = ["setuptools>=75", "cython>=3.0", "numpy>=2.0", "ziglang>=0.15"]

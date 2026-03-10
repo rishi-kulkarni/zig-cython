@@ -269,6 +269,7 @@ def build_wheel(py_version: str, plat: dict, ext_path: Path) -> Path:
         f"Version: {VERSION}\n"
         f"Summary: Cython extension cross-compiled with Zig\n"
         f"Requires-Python: >=3.10\n"
+        f"Requires-Dist: numpy>=2.0\n"
     ).encode()
 
     wheel_content = (
